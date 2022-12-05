@@ -1,15 +1,19 @@
 # Field Session
 
+## About
+
+This project was made for CSCI370: Advanced Software Engineering at the Colorado School of Mines. Essentially, it is the result of research on different messaging systems: Kafka, ActiveMQ and RabbitMQ. These systems were tested for cloud deployment within Docker. In this repository there are folders for brokers and microservices, with the compose scripts to deploy them onto a Docker container. There is also an integration test suite that tests the performance metrics during deployment.
+
 ## Getting Started
 
 ### Running a Basic Messaging System
 
-- The default messaging system is composed of one producer and two consumers, one in python and one in java.
+- The default messaging system is composed of three microservices: one producer and two consumers (one in python and one in java). There are also broker clusters for each messaging system under `brokers` that run alongside the microservices.
 
 - Ensure you have Docker installed. To check version run `$ docker --version`
 
-- To run a kafka cluster, you first have to build the images for the microservices.
-- First, from `brokers/docker-compose.yml` run `$ docker-compose up` to load the brokers into a container
+- To run a Kafka cluster, you first have to build the images for the microservices.
+- First, from `brokers/kafka/docker-compose.yml` run `$ docker-compose up` to load the brokers into a container
 - Then, from `infrastructure/docker-compose.yml` run `$ docker-compose build` to build the images for each microservice.
 - Finally, run `$ docker-compose up` from `infrastructure/docker-compose.yml` to load the microservices into a container.
 - Now messages should be going through!
@@ -50,14 +54,14 @@ data-processor-2:
     - .env
 ```
 
-- in addition, if you want a different environment variable configuration for a microservice, you can make another .env file and reference it in the `env_file` block.
+- in addition, if you want a different environment variable configuration for a microservice, you can add an `environment` block to the compose file specifying what the variable should be.
 
-### Adding Multiple Brokers
+### Different Broker Configurations
 
-- In `brokers/docker-compose.yml` replace current file with this 3 broker config example:
+- In `brokers/kafka/docker-compose.yml`, the default configuration is with three brokers. To scale down to one broker, change the file to the following:
 
 ``` yml
-
+---
 version: "3.5"
 services:
   zookeeper:
@@ -65,59 +69,35 @@ services:
     ports:
       - "2181:2181"
     networks:
-        - fieldsession
-  kafka-1:
+      - fieldsession
+  kafka:
     image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
     depends_on:
       - zookeeper
     networks:
-        - fieldsession
+      - fieldsession
     environment:
-      KAFKA_ADVERTISED_HOST_NAME: kafka-1
-      KAFKA_BROKER_ID: 1
+      KAFKA_ADVERTISED_HOST_NAME: kafka
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
-      KAFKA_CREATE_TOPICS: "sendvehicle:5:3"
-    ports:
-      - "19092:19092"
-  kafka-2:
-    image: wurstmeister/kafka
-    depends_on:
-      - zookeeper
-    networks:
-        - fieldsession
-    environment:
-      KAFKA_ADVERTISED_HOST_NAME: kafka-2
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
-    ports:
-      - "29092:29092"
-  kafka-3:
-    image: wurstmeister/kafka
-    depends_on:
-      - zookeeper
-    networks:
-        - fieldsession
-    environment:
-      KAFKA_ADVERTISED_HOST_NAME: kafka-3
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
-    ports:
-      - "39092:39092"
+      KAFKA_CREATE_TOPICS: "sendvehicle:2:1"
 networks:
   fieldsession:
-   name: field_session
+    name: field_session
 ```
 
-- To run a cluster with multiple brokers, the microservices require updated images.
-- First `cd` into `data-generator` then in `DataGeneratorConfig.java`, replace line 32 with: `properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-1:19092, kafka-2:29092, kafka-3:39092");`. This ensures that the producer connects to all three instances of Kafka.
-- For `data-processor-a`, in `DataProcessorAConfig.java` replace line 36 with: `properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka-1:9092, kafka-2:9092, kafka-3:9092");`. This ensures that the producer can connect to all instances of Kafka.
-- this can also be done with `data-processor-b`. To connect to the three brokers, in `kafka_consumer.py` change the variable `bootstrapServers` to `['kafka-1:9092', 'kafka-2:9092', 'kafka-3:9092']`.
+- To run a cluster with one broker, the microservices require updated images.
+- First `cd` into `data-generator/src/main/java/session/field/config` then in `DataGeneratorConfig.java`, replace line 32 with: `properties.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");`.
+- For `data-processor-a`, in `data-processor-a/src/main/java/session/field/config/DataProcessorAConfig.java` replace line 36 with: `properties.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");`.
+- this can also be done with `data-processor-b`. in `data-processor-b/data-processor/kafka_consumer.py` change the variable `bootstrapServers` to `['kafka:9092']`.
+
 - Then from `infrastructure/docker-compose.yml` run `$ docker-compose build` to update the images
 - Then from `brokers/docker-compose.yml` run `$ docker-compose up` to load the brokers into a container
 - Finally, run `$ docker-compose up` from `infrastructure/docker-compose.yml` to load the microservices into a container.
+
+- You can also scale the configuration up. it is possible to scale instances of zookeeper and futher instances of kafka.
 
 ### Modifying Deployment
 
@@ -130,4 +110,48 @@ networks:
 
 #### Changing Message Rate
 
-- The producer has `NUMBER_MESSAGES` and `MESSAGE_RATE_MS` as environment variables, and editing those in the .env file allows to change the number of messages sent as well as how often they are sent in milliseconds.
+- The producer has `NUMBER_MESSAGES` and `MESSAGE_RATE_MS` as environment variables, and editing those in the .env file allows to change the number of messages sent as well as how often they are sent in milliseconds. You can also change the `KAFKA_TOPIC` variable to modify the topic sent/subscribed to for the microservices.
+
+
+## Using the Integration Test Suite
+
+- The integration test suite tests performance of containers when running a messaging system cluster. There are different kinds of tests that can be modified based on the command line arguments that are fed to the script.
+- Before running a test, change `infrastructure/.env` to:
+
+```
+NUMBER_MESSAGES=${NUMBER_MESSAGES}
+MESSAGE_RATE_MS=${MESSAGE_RATE_MS}
+DEBUG=${DEBUG}
+KAFKA_TOPIC="sendvehicle"
+```
+
+### N Messages to Consumers
+This test continuously produces messages from the generator until the set number
+of messages have been sent from the producer and consumed from the processors.
+To run set the number of messages by `--number-messages` and the `--broker`.
+
+### Timed Run with Consistent Production
+This test is a duration test, that has the producer consistently send messages
+on a fixed delay for an amount of time. To run set the number of messages to be
+sent on the interval with `--number-messages`, the delay in ms between production
+with `--message-rate`, the duration of the test in seconds with `--time` and the current
+broker with `--broker`
+
+## Setup
+Make sure you have your virtual environment setup correctly.
+
+Run in the root directory to install the necessary packages.
+
+`pip install .`
+
+Start the correct broker in another terminal.
+
+Run `__main__.py` with command line arguments to define a test.
+
+Ex.
+
+`python __main__.py --number-messages=1000 --broker=activemq --docker-compose=../../infrastructure/docker-compose.yml`
+
+After the test completes a graph will appear in a new window of metrics from the test.
+
+![img.png](rabbitmq_test.png)
