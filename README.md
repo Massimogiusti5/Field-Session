@@ -12,11 +12,17 @@ This project was made for CSCI370: Advanced Software Engineering at the Colorado
 
 - Ensure you have Docker installed. To check version run `$ docker --version`
 
+#### Kafka
+
 - To run a Kafka cluster, you first have to build the images for the microservices.
 - First, from `brokers/kafka/docker-compose.yml` run `$ docker-compose up` to load the brokers into a container
 - Then, from `infrastructure/docker-compose.yml` run `$ docker-compose build` to build the images for each microservice.
 - Finally, run `$ docker-compose up` from `infrastructure/docker-compose.yml` to load the microservices into a container.
 - Now messages should be going through!
+
+#### ActiveMQ
+#### RabbitMQ
+- To be published onto a branch
 
 
 #### Scaling Microservices
