@@ -21,6 +21,7 @@ This project was made for CSCI370: Advanced Software Engineering at the Colorado
 - Now messages should be going through!
 
 #### ActiveMQ
+- To be published onto a branch
 #### RabbitMQ
 - To be published onto a branch
 
@@ -159,5 +160,3 @@ Ex.
 `python __main__.py --number-messages=1000 --broker=activemq --docker-compose=../../infrastructure/docker-compose.yml`
 
 After the test completes a graph will appear in a new window of metrics from the test.
-
-![img.png](rabbitmq_test.png)
