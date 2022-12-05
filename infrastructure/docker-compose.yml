@@ -1,0 +1,39 @@
+---
+version: "3.5"
+services:
+  data-processor-a:
+    build:
+      context: ../data-processor-a
+    image: data-processor-a
+    volumes:
+      - "${HOME}/.m2:/root/.m2"
+    networks:
+      - fieldsession
+    env_file:
+        - .env
+  data-processor-b:
+    build:
+      context: ../data-processor-b
+    image: data-processor-b
+    volumes:
+      - "${HOME}/.m2:/root/.m2"
+    networks:
+      - fieldsession
+    env_file:
+        - .env
+  data-generator:
+      build:
+        context: ../data-generator
+      image: data-generator
+      depends_on:
+        - data-processor-a
+        - data-processor-b
+      volumes:
+        - "${HOME}/.m2:/root/.m2"
+      networks:
+        - fieldsession
+      env_file:
+        - .env
+networks:
+  fieldsession:
+   name: field_session

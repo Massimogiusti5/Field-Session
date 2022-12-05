@@ -1,0 +1,10 @@
+FROM maven:3.6.3-openjdk-15 AS build
+COPY src /usr/src/app/src
+COPY pom.xml /usr/src/app
+# RUN mvn -Dmaven.wagon.http.ssl.insecure=true -Dmaven.wagon.http.ssl.allowall=true -Dmaven.wagon.http.ssl.ignore.validity.dates=true -f /usr/src/app/pom.xml clean package
+RUN mvn -f /usr/src/app/pom.xml clean package
+
+FROM openjdk:15
+COPY --from=build /usr/src/app/target/data-processor-a*.jar /usr/app/data-processor-a.jar
+EXPOSE 8082
+ENTRYPOINT ["java", "-jar", "/usr/app/data-processor-a.jar"]

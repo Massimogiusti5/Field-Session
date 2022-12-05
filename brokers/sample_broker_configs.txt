@@ -1,0 +1,82 @@
+// 1 broker
+
+---
+version: "3.5"
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - fieldsession
+  kafka:
+    image: wurstmeister/kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - fieldsession
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
+      KAFKA_CREATE_TOPICS: "sendvehicle:2:1"
+networks:
+  fieldsession:
+    name: field_session
+
+// 3 brokers
+
+---
+version: "3.5"
+services:
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    networks:
+      - fieldsession
+  kafka-1:
+    image: wurstmeister/kafka
+    ports:
+      - "19092:19092"
+    depends_on:
+      - zookeeper
+    networks:
+      - fieldsession
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka-1
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
+      KAFKA_CREATE_TOPICS: "sendvehicle:2:3"
+  kafka-2:
+    image: wurstmeister/kafka
+    ports:
+      - "29092:29092"
+    depends_on:
+      - zookeeper
+    networks:
+      - fieldsession
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka-2
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
+  kafka-3:
+    image: wurstmeister/kafka
+    ports:
+      - "39092:39092"
+    depends_on:
+      - zookeeper
+    networks:
+      - fieldsession
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: kafka-3
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: false
+networks:
+  fieldsession:
+    name: field_session
