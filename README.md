@@ -20,11 +20,6 @@ This project was made for CSCI370: Advanced Software Engineering at the Colorado
 - Finally, run `$ docker-compose up` from `infrastructure/docker-compose.yml` to load the microservices into a container.
 - Now messages should be going through!
 
-#### ActiveMQ
-- To be published onto a branch
-#### RabbitMQ
-- To be published onto a branch
-
 
 #### Scaling Microservices
 
